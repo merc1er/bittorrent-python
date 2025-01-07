@@ -22,7 +22,7 @@ def main():
     if command == "decode":
         bencoded_value = sys.argv[2].encode()
         decoded_value = bencodepy.decode(bencoded_value)
-        print(json.dumps(decoded_value, default=bytes_to_str))
+        print(decoded_value)
     else:
         raise NotImplementedError(f"Unknown command {command}")
 
