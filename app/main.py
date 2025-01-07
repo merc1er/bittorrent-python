@@ -1,22 +1,9 @@
 import json
 import sys
 
-# import bencodepy - available if you need it!
+import bencodepy
+
 # import requests - available if you need it!
-
-
-# Examples:
-#
-# - decode_bencode(b"5:hello") -> b"hello"
-# - decode_bencode(b"10:hello12345") -> b"hello12345"
-def decode_bencode(bencoded_value):
-    if chr(bencoded_value[0]).isdigit():
-        first_colon_index = bencoded_value.find(b":")
-        if first_colon_index == -1:
-            raise ValueError("Invalid encoded value")
-        return bencoded_value[first_colon_index + 1 :]
-    elif chr(bencoded_value[0]) == "i":  # integer decoding.
-        return int(bencoded_value[1 : bencoded_value.find(b"e")])
 
 
 def bytes_to_str(data):
@@ -34,8 +21,10 @@ def main():
 
     if command == "decode":
         bencoded_value = sys.argv[2].encode()
-
-        print(json.dumps(decode_bencode(bencoded_value), default=bytes_to_str))
+        decoded_value = bencodepy.decode(bencoded_value)
+        if len(decoded_value) == 1:
+            decoded_value = decoded_value[0]
+        print(json.dumps(decoded_value, default=bytes_to_str))
     else:
         raise NotImplementedError(f"Unknown command {command}")
 
