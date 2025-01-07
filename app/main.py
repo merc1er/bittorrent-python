@@ -1,3 +1,4 @@
+import json
 import sys
 
 import bencodepy
@@ -11,7 +12,7 @@ def main():
     if command == "decode":
         bencoded_value = sys.argv[2].encode()
         decoded_value = bc.decode(bencoded_value)
-        print(decoded_value)
+        print(json.dumps(decoded_value))
     else:
         raise NotImplementedError(f"Unknown command {command}")
 
