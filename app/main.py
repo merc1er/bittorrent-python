@@ -1,20 +1,8 @@
-import json
 import sys
-from collections import OrderedDict
 
 import bencodepy
 
-# import requests - available if you need it!
-
-
-def bytes_to_str(data):
-    # json.dumps() can't handle bytes, but bencoded "strings" need to be
-    # bytestrings since they might contain non utf-8 characters.
-
-    if isinstance(data, bytes):
-        return data.decode()
-
-    raise TypeError(f"Type not serializable: {type(data)}")
+bc = bencodepy.BencodeDecoder(encoding="utf-8")
 
 
 def main():
@@ -22,11 +10,8 @@ def main():
 
     if command == "decode":
         bencoded_value = sys.argv[2].encode()
-        decoded_value = bencodepy.decode(bencoded_value)
-        if isinstance(decoded_value, OrderedDict):
-            print(dict(decoded_value))
-            return
-        print(json.dumps(decoded_value, default=bytes_to_str))
+        decoded_value = bc.decode(bencoded_value)
+        print(decoded_value)
     else:
         raise NotImplementedError(f"Unknown command {command}")
 
