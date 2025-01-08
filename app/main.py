@@ -6,8 +6,8 @@ import bencodepy
 bc = bencodepy.BencodeDecoder(encoding="utf-8")
 
 
-def read_torrent_file(file_path: str) -> str:
-    def convert_bytes_to_str(obj):
+def read_torrent_file(file_path: str) -> dict | list | str | int:
+    def convert_bytes_to_str(obj: bytes):
         # Recursively convert all byte strings to normal strings
         if isinstance(obj, dict):
             result = {}
@@ -21,8 +21,9 @@ def read_torrent_file(file_path: str) -> str:
             return result
         elif isinstance(obj, bytes):
             return obj.decode("utf-8", errors="replace")  # Decode bytes to string
-        else:
+        elif isinstance(obj, int):
             return obj
+        raise ValueError(f"Unexpected type {type(obj)}")
 
     with open(file_path, "rb") as f:
         data = f.read()
