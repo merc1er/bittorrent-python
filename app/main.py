@@ -32,13 +32,13 @@ def read_torrent_file(file_path: str) -> dict | list | str | int:
         decoded_data = bencodepy.decode(data)
         stringified_data = convert_bytes_to_str(decoded_data)
 
-    pprint(stringified_data)
+    # pprint(stringified_data)
     return stringified_data
 
 
 def calculate_info_hash(info: dict) -> str:
     bencoded_info = bencodepy.encode(info)
-    pprint(bc.decode(bencoded_info))
+    # pprint(bc.decode(bencoded_info))
     return sha1(bencoded_info).hexdigest()
 
 
