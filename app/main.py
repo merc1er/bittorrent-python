@@ -1,5 +1,7 @@
 import json
 import sys
+from hashlib import sha1
+from pprint import pprint
 
 import bencodepy
 
@@ -30,8 +32,14 @@ def read_torrent_file(file_path: str) -> dict | list | str | int:
         decoded_data = bencodepy.decode(data)
         stringified_data = convert_bytes_to_str(decoded_data)
 
-    print(stringified_data)
+    pprint(stringified_data)
     return stringified_data
+
+
+def calculate_info_hash(info: dict) -> str:
+    bencoded_info = bencodepy.encode(info)
+    pprint(bc.decode(bencoded_info))
+    return sha1(bencoded_info).hexdigest()
 
 
 def main():
@@ -45,6 +53,7 @@ def main():
         decoded_value = read_torrent_file(sys.argv[2])
         print("Tracker URL:", decoded_value["announce"])
         print("Length:", decoded_value["info"]["length"])
+        print("Info Hash:", calculate_info_hash(decoded_value["info"]))
     else:
         raise NotImplementedError(f"Unknown command {command}")
 
