@@ -8,38 +8,17 @@ import bencodepy
 bc = bencodepy.BencodeDecoder(encoding="utf-8")
 
 
-def read_torrent_file(file_path: str) -> dict | list | str | int:
-    def convert_bytes_to_str(obj: bytes):
-        # Recursively convert all byte strings to normal strings
-        if isinstance(obj, dict):
-            result = {}
-            for key, value in obj.items():
-                result[convert_bytes_to_str(key)] = convert_bytes_to_str(value)
-            return result
-        elif isinstance(obj, list):
-            result = []
-            for item in obj:
-                result.append(convert_bytes_to_str(item))
-            return result
-        elif isinstance(obj, bytes):
-            return obj.decode("utf-8", errors="replace")  # Decode bytes to string
-        elif isinstance(obj, int):
-            return obj
-        raise ValueError(f"Unexpected type {type(obj)}")
-
-    with open(file_path, "rb") as f:
-        data = f.read()
-        decoded_data = bencodepy.decode(data)
-        stringified_data = convert_bytes_to_str(decoded_data)
-
-    # pprint(stringified_data)
-    return stringified_data
-
-
 def calculate_info_hash(info: dict) -> str:
     bencoded_info = bencodepy.encode(info)
     # pprint(bc.decode(bencoded_info))
     return sha1(bencoded_info).hexdigest()
+
+
+def read_torrent_file_raw(file_path: str) -> dict:
+    with open(file_path, "rb") as f:
+        data = f.read()
+        decoded_data = bencodepy.decode(data)
+    return decoded_data
 
 
 def main():
@@ -50,10 +29,10 @@ def main():
         decoded_value = bc.decode(bencoded_value)
         print(json.dumps(decoded_value))
     elif command == "info":
-        decoded_value = read_torrent_file(sys.argv[2])
-        print("Tracker URL:", decoded_value["announce"])
-        print("Length:", decoded_value["info"]["length"])
-        print("Info Hash:", calculate_info_hash(decoded_value["info"]))
+        decoded_value = read_torrent_file_raw(sys.argv[2])
+        print("Tracker URL:", decoded_value[b"announce"].decode("utf-8"))
+        print("Length:", decoded_value[b"info"][b"length"])
+        print("Info Hash:", calculate_info_hash(decoded_value[b"info"]))
     else:
         raise NotImplementedError(f"Unknown command {command}")
 
