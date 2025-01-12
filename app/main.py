@@ -25,7 +25,7 @@ def read_torrent_file_raw(file_path: str) -> dict:
 def decode_pieces(pieces: bytes):
     while pieces:
         piece = pieces[:20]
-        print(calculate_sha1(piece))
+        print(piece.hex())
         pieces = pieces[20:]
 
 
