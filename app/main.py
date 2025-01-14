@@ -81,7 +81,7 @@ def perform_handshake(ip: str, port: int, info_hash: bytes) -> None:
 
     response = connect_to_server(ip, port, data)
     response_peer_id = response[48:].hex()
-    print(response_peer_id)
+    print("Peer ID:", response_peer_id)
 
 
 def main():
