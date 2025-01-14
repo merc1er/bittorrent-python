@@ -1,4 +1,5 @@
 import json
+import socket
 import sys
 from hashlib import sha1
 from pprint import pprint
@@ -41,7 +42,7 @@ def decode_peers(peers: bytes) -> list[str]:
     return decoded_peers
 
 
-def get_peers(url: str, info_hash: dict, left: int) -> str:
+def get_peers(url: str, info_hash: dict, left: int) -> list[str]:
     url_encoded_info_hash = sha1(bencodepy.encode(info_hash)).digest()
 
     params = {
@@ -64,6 +65,25 @@ def get_peers(url: str, info_hash: dict, left: int) -> str:
     return decode_peers(decoded_response[b"peers"])
 
 
+def connect_to_server(ip: str, port: int, data: bytes) -> bytes:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
+        client_socket.connect((ip, port))
+        client_socket.sendall(data)
+        response = client_socket.recv(1024)
+        return response
+
+
+def perform_handshake(ip: str, port: int, info_hash: bytes) -> None:
+    peer_id = b"super_duper_peer____"
+    data = (
+        b"\x13BitTorrent protocol\x00\x00\x00\x00\x00\x00\x00\x00" + info_hash + peer_id
+    )
+
+    response = connect_to_server(ip, port, data)
+    response_peer_id = response[48:].hex()
+    print(response_peer_id)
+
+
 def main():
     command = sys.argv[1]
 
@@ -71,7 +91,7 @@ def main():
         bencoded_value = sys.argv[2].encode()
         decoded_value = bc.decode(bencoded_value)
         print(json.dumps(decoded_value))
-    elif command == "info" or command == "peers":
+    elif command in ["info", "peers", "handshake"]:
         decoded_value = read_torrent_file_raw(sys.argv[2])
         info_hash = calculate_sha1(decoded_value[b"info"])
         tracker_url = decoded_value[b"announce"].decode("utf-8")
@@ -91,6 +111,10 @@ def main():
             )
             for peer in peers:
                 print(peer)
+        elif command == "handshake":
+            ip, port = sys.argv[3].split(":")
+            # print(f"Connecting to {ip}:{port}")
+            perform_handshake(ip, int(port), bytes.fromhex(info_hash))
     else:
         raise NotImplementedError(f"Unknown command {command}")
 
