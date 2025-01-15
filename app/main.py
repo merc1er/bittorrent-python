@@ -10,10 +10,11 @@ import requests
 
 bc = bencodepy.BencodeDecoder(encoding="utf-8")
 
+PEER_ID = "-CC0001-123456789012"
+
 
 def calculate_sha1(data: Any) -> str:
     bencoded_info = bencodepy.encode(data)
-    # pprint(bc.decode(bencoded_info))
     return sha1(bencoded_info).hexdigest()
 
 
@@ -24,7 +25,7 @@ def read_torrent_file_raw(file_path: str) -> dict:
     return decoded_data
 
 
-def decode_pieces(pieces: bytes):
+def decode_pieces(pieces: bytes) -> None:
     while pieces:
         piece = pieces[:20]
         print(piece.hex())
@@ -47,7 +48,7 @@ def get_peers(url: str, info_hash: dict, left: int) -> list[str]:
 
     params = {
         "info_hash": url_encoded_info_hash,
-        "peer_id": "super_duper_peer____",
+        "peer_id": PEER_ID,
         "port": 6881,
         "uploaded": 0,
         "downloaded": 0,
@@ -74,11 +75,11 @@ def connect_to_server(ip: str, port: int, data: bytes) -> bytes:
 
 
 def perform_handshake(ip: str, port: int, info_hash: bytes) -> None:
-    peer_id = b"super_duper_peer____"
     data = (
-        b"\x13BitTorrent protocol\x00\x00\x00\x00\x00\x00\x00\x00" + info_hash + peer_id
+        b"\x13BitTorrent protocol\x00\x00\x00\x00\x00\x00\x00\x00"
+        + info_hash
+        + PEER_ID.encode()
     )
-
     response = connect_to_server(ip, port, data)
     response_peer_id = response[48:].hex()
     print("Peer ID:", response_peer_id)
