@@ -91,18 +91,13 @@ def main():
         bencoded_value = sys.argv[2].encode()
         decoded_value = bc.decode(bencoded_value)
         print(json.dumps(decoded_value))
-    elif command in ["info", "peers", "handshake"]:
+    elif command in ["info", "peers", "handshake", "download_piece"]:
         decoded_value = read_torrent_file_raw(sys.argv[2])
         info_hash = calculate_sha1(decoded_value[b"info"])
         tracker_url = decoded_value[b"announce"].decode("utf-8")
 
         if command == "info":
-            print("Tracker URL:", tracker_url)
-            print("Length:", decoded_value[b"info"][b"length"])
-            print("Info Hash:", info_hash)
-            print("Piece Length:", decoded_value[b"info"][b"piece length"])
-            print("Piece Hashes:")
-            decode_pieces(decoded_value[b"info"][b"pieces"])
+            print_info(decoded_value, info_hash, tracker_url)
         elif command == "peers":
             peers = get_peers(
                 url=tracker_url,
@@ -115,8 +110,19 @@ def main():
             ip, port = sys.argv[3].split(":")
             # print(f"Connecting to {ip}:{port}")
             perform_handshake(ip, int(port), bytes.fromhex(info_hash))
+        elif command == "download_piece":
+            pass
     else:
         raise NotImplementedError(f"Unknown command {command}")
+
+
+def print_info(decoded_value: dict, info_hash: str, tracker_url: str) -> None:
+    print("Tracker URL:", tracker_url)
+    print("Length:", decoded_value[b"info"][b"length"])
+    print("Info Hash:", info_hash)
+    print("Piece Length:", decoded_value[b"info"][b"piece length"])
+    print("Piece Hashes:")
+    decode_pieces(decoded_value[b"info"][b"pieces"])
 
 
 if __name__ == "__main__":
