@@ -1,21 +1,11 @@
 import json
-import socket
 import sys
-from hashlib import sha1
-from pprint import pprint
-from typing import Any
 
 import bencodepy
-import requests
+from file_parsing import calculate_sha1, get_peers
+from network import download_piece, perform_handshake
 
 bc = bencodepy.BencodeDecoder(encoding="utf-8")
-
-PEER_ID = "-CC0001-123456789012"
-
-
-def calculate_sha1(data: Any) -> str:
-    bencoded_info = bencodepy.encode(data)
-    return sha1(bencoded_info).hexdigest()
 
 
 def read_torrent_file_raw(file_path: str) -> dict:
@@ -32,59 +22,6 @@ def decode_pieces(pieces: bytes) -> None:
         pieces = pieces[20:]
 
 
-def decode_peers(peers: bytes) -> list[str]:
-    decoded_peers = []
-    while peers:
-        ip = ".".join(str(x) for x in peers[:4])
-        port = int.from_bytes(peers[4:6], byteorder="big")
-        decoded_peers.append(f"{ip}:{port}")
-        peers = peers[6:]
-
-    return decoded_peers
-
-
-def get_peers(url: str, info_hash: dict, left: int) -> list[str]:
-    url_encoded_info_hash = sha1(bencodepy.encode(info_hash)).digest()
-
-    params = {
-        "info_hash": url_encoded_info_hash,
-        "peer_id": PEER_ID,
-        "port": 6881,
-        "uploaded": 0,
-        "downloaded": 0,
-        "left": left,
-        "compact": 1,
-    }
-    try:
-        response = requests.get(url, params=params)
-    except requests.RequestException as e:
-        if isinstance(e, requests.HTTPError):
-            print(response.text)
-        print(f"Error: {e}")
-
-    decoded_response = bencodepy.decode(response.content)
-    return decode_peers(decoded_response[b"peers"])
-
-
-def connect_to_server(ip: str, port: int, data: bytes) -> bytes:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
-        client_socket.connect((ip, port))
-        client_socket.sendall(data)
-        response = client_socket.recv(1024)
-        return response
-
-
-def perform_handshake(ip: str, port: int, info_hash: bytes) -> None:
-    data = (
-        b"\x13BitTorrent protocol\x00\x00\x00\x00\x00\x00\x00\x00"
-        + info_hash
-        + PEER_ID.encode()
-    )
-    response = connect_to_server(ip, port, data)
-    response_peer_id = response[48:].hex()
-    print("Peer ID:", response_peer_id)
-
-
 def main():
     command = sys.argv[1]
 
@@ -92,7 +29,7 @@ def main():
         bencoded_value = sys.argv[2].encode()
         decoded_value = bc.decode(bencoded_value)
         print(json.dumps(decoded_value))
-    elif command in ["info", "peers", "handshake", "download_piece"]:
+    elif command in ["info", "peers", "handshake"]:
         decoded_value = read_torrent_file_raw(sys.argv[2])
         info_hash = calculate_sha1(decoded_value[b"info"])
         tracker_url = decoded_value[b"announce"].decode("utf-8")
@@ -111,8 +48,11 @@ def main():
             ip, port = sys.argv[3].split(":")
             # print(f"Connecting to {ip}:{port}")
             perform_handshake(ip, int(port), bytes.fromhex(info_hash))
-        elif command == "download_piece":
-            pass
+    elif command == "download_piece":
+        output_file_path = sys.argv[3]
+        torrent_file_content = read_torrent_file_raw(sys.argv[4])
+        piece_index = int(sys.argv[5])
+        download_piece(torrent_file_content, piece_index, output_file_path)
     else:
         raise NotImplementedError(f"Unknown command {command}")
 
