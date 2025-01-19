@@ -11,23 +11,18 @@ from app.file_parsing import calculate_sha1, get_peers
 from app.settings import PEER_ID
 
 
-def connect_to_server(ip: str, port: int, data: bytes) -> bytes:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
-        client_socket.connect((ip, port))
-        client_socket.sendall(data)
-        response = client_socket.recv(1024)
-        return response
-
-
-def perform_handshake(ip: str, port: int, info_hash: bytes) -> None:
-    data = (
-        b"\x13BitTorrent protocol\x00\x00\x00\x00\x00\x00\x00\x00"
-        + info_hash
-        + PEER_ID.encode()
-    )
-    response = connect_to_server(ip, port, data)
+def perform_handshake(info_hash: bytes, sock: socket.socket) -> None:
+    data = b"\x13BitTorrent protocol" + b"\x00" * 8 + info_hash + PEER_ID.encode()
+    sock.sendall(data)
+    response = sock.recv(1024)
     response_peer_id = response[48:].hex()
     print("Peer ID:", response_peer_id)
+
+
+def perform_handshake_standalone(ip: str, port: str, info_hash: str) -> None:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.connect((ip, int(port)))
+        perform_handshake(bytes.fromhex(info_hash), sock)
 
 
 def wait_for_bitfield(client_socket: socket.socket) -> None:
@@ -45,7 +40,7 @@ def wait_for_bitfield(client_socket: socket.socket) -> None:
                 "Peer disconnected before sending a bitfield message."
             )
 
-        message_id = response[4]
+        message_id = response[0]
         if message_id == 5:  # Bitfield message
             print("Received bitfield message from the peer.")
             return
@@ -68,15 +63,12 @@ def download_piece(
 
     ip, port = peers[0].split(":")
 
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
-        client_socket.connect((ip, int(port)))
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.connect((ip, int(port)))
+        perform_handshake(bytes.fromhex(info_hash), sock)
 
-        # Perform handshake
-        perform_handshake(ip, int(port), bytes.fromhex(info_hash))
-
-        # Wait for the bitfield message
         print("Waiting for bitfield message...")
-        wait_for_bitfield(client_socket)
+        wait_for_bitfield(sock)
 
         # Assume all pieces are available, proceed to download the piece
         print(f"Downloading piece {piece_index}...")

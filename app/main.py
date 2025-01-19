@@ -4,7 +4,7 @@ import sys
 import bencodepy
 
 from app.file_parsing import calculate_sha1, get_peers
-from app.network import download_piece, perform_handshake
+from app.network import download_piece, perform_handshake_standalone
 
 bc = bencodepy.BencodeDecoder(encoding="utf-8")
 
@@ -48,7 +48,7 @@ def main():
         elif command == "handshake":
             ip, port = sys.argv[3].split(":")
             # print(f"Connecting to {ip}:{port}")
-            perform_handshake(ip, int(port), bytes.fromhex(info_hash))
+            perform_handshake_standalone(ip, port, info_hash)
     elif command == "download_piece":
         output_file_path = sys.argv[3]
         torrent_file_content = read_torrent_file_raw(sys.argv[4])
