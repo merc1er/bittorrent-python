@@ -57,12 +57,12 @@ def download_piece(torrent_file_content: dict, piece_index: int, output_file_pat
                 f"Requesting block {block + 1} of {number_of_blocks} with length {block_length}"
             )
 
-            msg = struct.pack(">IBIII", 13, 6, piece_index, begin, block_length)
+            msg = struct.pack(">IBIII", 13, msg_id, piece_index, begin, block_length)
             sock.sendall(msg)
 
             print("🫸🏻 Waiting for piece message...")
             message = read_message(sock, 7)
-            piece_data += message[13:]
+            piece_data += message[8:]
             print(f"📥 Received piece message. Length: {len(message) * 8}")
 
         with open(output_file_path, "wb") as f:
@@ -103,7 +103,7 @@ def read_message(sock: socket.socket, expected_message_id: int) -> bytes:
     payload = message[1:]
     if message_id == expected_message_id:
         print(f"Received message with ID {expected_message_id}.")
-        print(full_message_hex)
+        # print(full_message_hex)
         return payload
     else:
         raise ValueError(
