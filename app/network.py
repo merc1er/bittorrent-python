@@ -19,12 +19,13 @@ def download_piece(torrent_file_content: dict, piece_index: int, output_file_pat
     tracker_url = torrent_file_content[b"announce"].decode("utf-8")
     default_piece_length = torrent_file_content[b"info"][b"piece length"]
     file_length = torrent_file_content[b"info"][b"length"]
+    total_number_of_pieces = math.ceil(file_length / default_piece_length)
     number_of_blocks = math.ceil(default_piece_length / (16 * 1024))
 
-    # if piece_index == total_number_of_pieces - 1:
-    #     piece_length = file_length - (default_piece_length * piece_index)
-    # else:
-    #     piece_length = default_piece_length
+    if piece_index == total_number_of_pieces - 1:
+        piece_length = file_length - (default_piece_length * piece_index)
+    else:
+        piece_length = default_piece_length
 
     peers = get_peers(
         url=tracker_url,
@@ -51,7 +52,7 @@ def download_piece(torrent_file_content: dict, piece_index: int, output_file_pat
         for block in range(number_of_blocks):
             msg_id = 6
             begin = 16 * 1024 * block
-            block_length = min(default_piece_length - begin, 16 * 1024)
+            block_length = min(piece_length - begin, 16 * 1024)
 
             print(
                 f"Requesting block {block + 1} of {number_of_blocks} with length {block_length}"
