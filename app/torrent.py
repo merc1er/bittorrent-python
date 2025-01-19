@@ -40,3 +40,12 @@ class Torrent:
     def calculate_sha1(data: dict) -> str:
         bencoded_info = bencodepy.encode(data)
         return sha1(bencoded_info).hexdigest()
+
+    def print_info(self) -> None:
+        print("Tracker URL:", self.tracker_url)
+        print("Length:", self.length)
+        print("Info Hash:", self.info_hash)
+        print("Piece Length:", self.piece_length)
+        print("Piece Hashes:")
+        for piece in self.pieces:
+            print(piece)

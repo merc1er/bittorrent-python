@@ -3,7 +3,7 @@ import sys
 
 import bencodepy
 
-from app.file_parsing import calculate_sha1, get_peers
+from app.file_parsing import get_peers
 from app.network import download_piece, perform_handshake_standalone
 from app.torrent import Torrent
 
@@ -17,13 +17,6 @@ def read_torrent_file_raw(file_path: str) -> dict:
     return decoded_data
 
 
-def decode_pieces(pieces: bytes) -> None:
-    while pieces:
-        piece = pieces[:20]
-        print(piece.hex())
-        pieces = pieces[20:]
-
-
 def main():
     command = sys.argv[1]
 
@@ -35,7 +28,7 @@ def main():
         torrent = Torrent.from_file(sys.argv[2])
 
         if command == "info":
-            print_info(torrent.decoded_value, torrent.info_hash, torrent.tracker_url)
+            torrent.print_info()
         elif command == "peers":
             peers = get_peers(
                 url=torrent.tracker_url,
@@ -55,15 +48,6 @@ def main():
         download_piece(torrent_file_content, piece_index, output_file_path)
     else:
         raise NotImplementedError(f"Unknown command {command}")
-
-
-def print_info(decoded_value: dict, info_hash: str, tracker_url: str) -> None:
-    print("Tracker URL:", tracker_url)
-    print("Length:", decoded_value[b"info"][b"length"])
-    print("Info Hash:", info_hash)
-    print("Piece Length:", decoded_value[b"info"][b"piece length"])
-    print("Piece Hashes:")
-    decode_pieces(decoded_value[b"info"][b"pieces"])
 
 
 if __name__ == "__main__":
