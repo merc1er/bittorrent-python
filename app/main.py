@@ -5,6 +5,7 @@ import bencodepy
 
 from app.file_parsing import calculate_sha1, get_peers
 from app.network import download_piece, perform_handshake_standalone
+from app.torrent import Torrent
 
 bc = bencodepy.BencodeDecoder(encoding="utf-8")
 
@@ -31,24 +32,22 @@ def main():
         decoded_value = bc.decode(bencoded_value)
         print(json.dumps(decoded_value))
     elif command in ["info", "peers", "handshake"]:
-        decoded_value = read_torrent_file_raw(sys.argv[2])
-        info_hash = calculate_sha1(decoded_value[b"info"])
-        tracker_url = decoded_value[b"announce"].decode("utf-8")
+        torrent = Torrent.from_file(sys.argv[2])
 
         if command == "info":
-            print_info(decoded_value, info_hash, tracker_url)
+            print_info(torrent.decoded_value, torrent.info_hash, torrent.tracker_url)
         elif command == "peers":
             peers = get_peers(
-                url=tracker_url,
-                info_hash=decoded_value[b"info"],
-                left=decoded_value[b"info"][b"length"],
+                url=torrent.tracker_url,
+                info_hash=torrent.info_hash,
+                left=torrent.length,
             )
             for peer in peers:
                 print(peer)
         elif command == "handshake":
             ip, port = sys.argv[3].split(":")
             # print(f"Connecting to {ip}:{port}")
-            perform_handshake_standalone(ip, port, info_hash)
+            perform_handshake_standalone(ip, port, torrent.info_hash)
     elif command == "download_piece":
         output_file_path = sys.argv[3]
         torrent_file_content = read_torrent_file_raw(sys.argv[4])
