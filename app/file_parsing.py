@@ -3,7 +3,8 @@ from typing import Any
 
 import bencodepy
 import requests
-from settings import PEER_ID
+
+from app.settings import PEER_ID
 
 
 def calculate_sha1(data: bytes) -> str:

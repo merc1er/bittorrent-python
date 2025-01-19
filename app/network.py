@@ -7,8 +7,8 @@ python app/main.py download_piece -o /tmp/test-piece sample.torrent <piece_index
 
 import socket
 
-from file_parsing import calculate_sha1, get_peers
-from settings import PEER_ID
+from app.file_parsing import calculate_sha1, get_peers
+from app.settings import PEER_ID
 
 
 def connect_to_server(ip: str, port: int, data: bytes) -> bytes:

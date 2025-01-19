@@ -2,8 +2,9 @@ import json
 import sys
 
 import bencodepy
-from file_parsing import calculate_sha1, get_peers
-from network import download_piece, perform_handshake
+
+from app.file_parsing import calculate_sha1, get_peers
+from app.network import download_piece, perform_handshake
 
 bc = bencodepy.BencodeDecoder(encoding="utf-8")
 
