@@ -1,5 +1,4 @@
 from hashlib import sha1
-from typing import Any
 
 import bencodepy
 import requests
