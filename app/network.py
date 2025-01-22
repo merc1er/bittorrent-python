@@ -75,7 +75,7 @@ def download_piece(torrent_file_content: dict, piece_index: int, output_file_pat
             print("🫸🏻 Waiting for piece message...")
             message = read_message(sock, 7)
             piece_data += message[8:]
-            print(f"📥 Received piece message. Length: {len(message) * 8}")
+            print(f"📥 Received piece message. Length: {len(message)}")
 
         with open(output_file_path, "wb") as f:
             f.write(piece_data)
