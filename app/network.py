@@ -70,6 +70,7 @@ def download_piece(torrent_file_content: dict, piece_index: int, output_file_pat
             )
 
             msg = struct.pack(">IBIII", 13, msg_id, piece_index, begin, block_length)
+            print(f"Sending message: {msg.hex()}")
             sock.sendall(msg)
 
             print("🫸🏻 Waiting for piece message...")
