@@ -114,15 +114,32 @@ def read_message(sock: socket.socket, expected_message_id: int) -> bytes:
     Waits for a message with the specified ID from the peer.
     """
 
-    length = sock.recv(4)
-    while not length or not int.from_bytes(length):
-        print("Waiting for message length...")
-        length = sock.recv(4)
+    # Helper function to read the exact number of bytes
+    def read_exactly(num_bytes: int) -> bytes:
+        data = b""
+        while len(data) < num_bytes:
+            chunk = sock.recv(num_bytes - len(data))
+            if not chunk:  # Connection closed or no data received
+                raise ConnectionError("Connection closed by peer")
+            data += chunk
+        return data
 
-    message = sock.recv(int.from_bytes(length))
-    while len(message) < int.from_bytes(length):
-        print("Waiting for the rest of the message...")
-        message += sock.recv(int.from_bytes(length) - len(message))
+    # Try reading the length of the message (4 bytes)
+    try:
+        length = read_exactly(4)
+    except socket.timeout:
+        print("Socket timed out while waiting for message length.")
+        raise TimeoutError("Timeout while waiting for message length")
+
+    message_length = int.from_bytes(length, byteorder="big")
+    print(f"Message length: {message_length}")
+
+    # Read the full message based on the length
+    try:
+        message = read_exactly(message_length)
+    except socket.timeout:
+        print("Socket timed out while waiting for the full message.")
+        raise TimeoutError("Timeout while waiting for the full message")
 
     message_id = message[0]
     if message_id == expected_message_id:
