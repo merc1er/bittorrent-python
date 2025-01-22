@@ -80,6 +80,7 @@ def download_piece(torrent_file_content: dict, piece_index: int, output_file_pat
                     message = read_message(sock, 7)
                     break
                 except socket.timeout:
+                    print("⏰ Timeout. Retrying...")
                     retry += 1
             piece_data += message[13:]
             print(f"📥 Received piece message. Length: {len(message)}")
