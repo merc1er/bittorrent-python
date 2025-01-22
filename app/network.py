@@ -43,6 +43,7 @@ def download_piece(torrent_file_content: dict, piece_index: int, output_file_pat
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.connect((ip, int(port)))
+        sock.settimeout(2)
         perform_handshake(bytes.fromhex(info_hash), sock)
 
         print("Waiting for bitfield message...")
