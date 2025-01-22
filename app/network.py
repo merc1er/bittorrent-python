@@ -75,7 +75,12 @@ def download_piece(torrent_file_content: dict, piece_index: int, output_file_pat
             sock.sendall(msg)
 
             print("🫸🏻 Waiting for piece message...")
-            message = read_message(sock, 7)
+            for retry in range(3):
+                try:
+                    message = read_message(sock, 7)
+                    break
+                except socket.timeout:
+                    retry += 1
             piece_data += message[13:]
             print(f"📥 Received piece message. Length: {len(message)}")
 
