@@ -23,7 +23,9 @@ def download_piece(torrent_file_content: dict, piece_index: int, output_file_pat
     number_of_blocks = math.ceil(default_piece_length / (16 * 1024))
 
     if piece_index == total_number_of_pieces - 1:
-        piece_length = file_length - (default_piece_length * piece_index)
+        piece_length = calculate_last_piece_length(
+            default_piece_length, file_length, total_number_of_pieces
+        )
     else:
         piece_length = default_piece_length
 
@@ -68,6 +70,12 @@ def download_piece(torrent_file_content: dict, piece_index: int, output_file_pat
 
         with open(output_file_path, "wb") as f:
             f.write(piece_data)
+
+
+def calculate_last_piece_length(
+    default_piece_length: int, file_length: int, total_number_of_pieces: int
+) -> int:
+    return file_length - (default_piece_length * (total_number_of_pieces - 1))
 
 
 def perform_handshake(info_hash: bytes, sock: socket.socket) -> None:
