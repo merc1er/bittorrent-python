@@ -62,6 +62,8 @@ def download_piece(torrent_file_content: dict, piece_index: int, output_file_pat
             if block == number_of_blocks - 1:
                 print(f"⚠️ {piece_length=} {begin=}")
                 block_length = piece_length - begin
+            else:
+                block_length = 16 * 1024
 
             print(
                 f"Requesting block {block + 1} of {number_of_blocks} with length {block_length}"
