@@ -116,10 +116,12 @@ def read_message(sock: socket.socket, expected_message_id: int) -> bytes:
 
     length = sock.recv(4)
     while not length or not int.from_bytes(length):
+        print("Waiting for message length...")
         length = sock.recv(4)
 
     message = sock.recv(int.from_bytes(length))
     while len(message) < int.from_bytes(length):
+        print("Waiting for the rest of the message...")
         message += sock.recv(int.from_bytes(length) - len(message))
 
     message_id = message[0]
