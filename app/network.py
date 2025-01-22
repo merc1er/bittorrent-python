@@ -74,7 +74,7 @@ def download_piece(torrent_file_content: dict, piece_index: int, output_file_pat
 
             print("🫸🏻 Waiting for piece message...")
             message = read_message(sock, 7)
-            piece_data += message[8:]
+            piece_data += message[13:]
             print(f"📥 Received piece message. Length: {len(message)}")
 
         with open(output_file_path, "wb") as f:
@@ -111,18 +111,13 @@ def read_message(sock: socket.socket, expected_message_id: int) -> bytes:
         length = sock.recv(4)
 
     message = sock.recv(int.from_bytes(length))
-
-    # In case the message is split into multiple packets.
     while len(message) < int.from_bytes(length):
         message += sock.recv(int.from_bytes(length) - len(message))
 
-    full_message_hex = length.hex() + message.hex()
     message_id = message[0]
-    payload = message[1:]
     if message_id == expected_message_id:
         print(f"Received message with ID {expected_message_id}.")
-        # print(full_message_hex)
-        return payload
+        return length + message
     else:
         raise ValueError(
             f"Expected message with ID {expected_message_id}, but got {message_id}."
