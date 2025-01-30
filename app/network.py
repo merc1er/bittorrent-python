@@ -109,20 +109,27 @@ def perform_handshake_standalone(ip: str, port: str, info_hash: str) -> None:
         perform_handshake(bytes.fromhex(info_hash), sock)
 
 
+def receive_full_message(sock: socket.socket, length: int) -> bytes:
+    data = b""
+    while len(data) < length:
+        chunk = sock.recv(length - len(data))
+        if not chunk:
+            raise ConnectionError("Connection closed before full message was received")
+        data += chunk
+    return data
+
+
 def read_message(sock: socket.socket, expected_message_id: int) -> bytes:
     """
     Waits for a message with the specified ID from the peer.
     """
 
     length = sock.recv(4)
-    while not length or not int.from_bytes(length):
+    while not length or not int.from_bytes(length, "big"):
         print("Waiting for message length...")
         length = sock.recv(4)
 
-    message = sock.recv(int.from_bytes(length))
-    while len(message) < int.from_bytes(length):
-        print("Waiting for the rest of the message...")
-        message += sock.recv(int.from_bytes(length) - len(message))
+    message = receive_full_message(sock, int.from_bytes(length, "big"))
 
     message_id = message[0]
     if message_id == expected_message_id:
