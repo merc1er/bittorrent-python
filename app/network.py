@@ -124,17 +124,18 @@ def read_message(sock: socket.socket, expected_message_id: int) -> bytes:
     Waits for a message with the specified ID from the peer.
     """
 
-    length = sock.recv(4)
-    while not length or not int.from_bytes(length, "big"):
-        print("Waiting for message length...")
-        length = sock.recv(4)
+    length_bytes = receive_full_message(sock, 4)
+    total_length = int.from_bytes(length_bytes, "big")
 
-    message = receive_full_message(sock, int.from_bytes(length, "big"))
+    if total_length == 0:
+        raise ValueError("Received a zero-length message, which is unexpected.")
+
+    message = receive_full_message(sock, total_length)
 
     message_id = message[0]
     if message_id == expected_message_id:
         print(f"Received message with ID {expected_message_id}.")
-        return length + message
+        return length_bytes + message
     else:
         raise ValueError(
             f"Expected message with ID {expected_message_id}, but got {message_id}."
