@@ -14,25 +14,28 @@ from app.settings import PEER_ID
 
 
 # Entrypoint
-def download_piece(torrent_file_content: dict, piece_index: int, output_file_path: str):
+def download_piece(
+    torrent_file_content: dict,
+    piece_index: int,
+    output_file_path: str,
+    total_number_of_pieces: int,
+):
     info_hash = calculate_sha1(torrent_file_content[b"info"])
     tracker_url = torrent_file_content[b"announce"].decode("utf-8")
-    default_piece_length = torrent_file_content[b"info"][b"piece length"]
     file_length = torrent_file_content[b"info"][b"length"]
-    number_of_blocks = math.ceil(default_piece_length / (16 * 1024))
-    total_number_of_pieces = math.ceil(file_length / default_piece_length)
 
     if piece_index >= total_number_of_pieces:
         raise ValueError(
             f"{piece_index=} is too big. Torrent has {total_number_of_pieces} pieces."
         )
 
+    default_piece_length = torrent_file_content[b"info"][b"piece length"]
     if piece_index == total_number_of_pieces - 1:
-        piece_length = calculate_last_piece_length(
-            default_piece_length, file_length, total_number_of_pieces
-        )
+        piece_length = file_length - (default_piece_length * piece_index)
     else:
         piece_length = default_piece_length
+
+    number_of_blocks = math.ceil(piece_length / (16 * 1024))
 
     peers = get_peers(
         url=tracker_url,
@@ -62,7 +65,8 @@ def download_piece(torrent_file_content: dict, piece_index: int, output_file_pat
             print(f"begin: {begin}")
             block_length = min(piece_length - begin, 2**14)
             print(
-                f"Requesting block {block_index + 1} of {number_of_blocks} with length {block_length}"
+                f"Requesting block {block_index + 1} of {number_of_blocks} with length"
+                f" {block_length}"
             )
 
             request_payload = struct.pack(

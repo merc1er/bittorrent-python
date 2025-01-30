@@ -43,9 +43,14 @@ def main():
             perform_handshake_standalone(ip, port, torrent.info_hash)
     elif command == "download_piece":
         output_file_path = sys.argv[3]
+        torrent = Torrent.from_file(sys.argv[4])
+        total_number_of_pieces = len(torrent.pieces)
+        print(f"Total number of pieces: {total_number_of_pieces}")
         torrent_file_content = read_torrent_file_raw(sys.argv[4])
         piece_index = int(sys.argv[5])
-        download_piece(torrent_file_content, piece_index, output_file_path)
+        download_piece(
+            torrent_file_content, piece_index, output_file_path, total_number_of_pieces
+        )
     else:
         raise NotImplementedError(f"Unknown command {command}")
 
