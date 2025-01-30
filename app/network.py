@@ -56,37 +56,50 @@ def download_piece(torrent_file_content: dict, piece_index: int, output_file_pat
         read_message(sock, 1)
         print("📥 Received unchoke message.")
 
-        piece_data = b""
-        for block in range(number_of_blocks):
-            msg_id = 6
-            begin = 16 * 1024 * block
-            if block == number_of_blocks - 1:
-                print(f"⚠️ {piece_length=} {begin=}")
-                block_length = piece_length - begin
-            else:
-                block_length = 16 * 1024
-
+        data = bytearray()
+        for block_index in range(number_of_blocks):
+            begin = 2**14 * block_index
+            print(f"begin: {begin}")
+            block_length = min(piece_length - begin, 2**14)
             print(
-                f"Requesting block {block + 1} of {number_of_blocks} with length {block_length}"
+                f"Requesting block {block_index + 1} of {number_of_blocks} with length {block_length}"
             )
 
-            msg = struct.pack(">IBIII", 13, msg_id, piece_index, begin, block_length)
-            print(f"Sending message: {msg.hex()}")
-            sock.sendall(msg)
+            request_payload = struct.pack(
+                ">IBIII", 13, 6, piece_index, begin, block_length
+            )
+            print("Requesting block, with payload:")
+            print(request_payload)
 
-            print("🫸🏻 Waiting for piece message...")
-            for retry in range(3):
-                try:
-                    message = read_message(sock, 7)
-                    break
-                except socket.timeout:
-                    print("⏰ Timeout. Retrying...")
-                    retry += 1
-            piece_data += message[13:]
-            print(f"📥 Received piece message. Length: {len(message)}")
+            print(struct.unpack(">IBIII", request_payload))
+
+            print(int.from_bytes(request_payload[:4]))
+            print(int.from_bytes(request_payload[4:5]))
+            print(int.from_bytes(request_payload[5:9]))
+            print(int.from_bytes(request_payload[17:21]))
+            sock.sendall(request_payload)
+
+            message = receive_message(sock)
+
+            data.extend(message[13:])
 
         with open(output_file_path, "wb") as f:
-            f.write(piece_data)
+            f.write(data)
+
+
+def receive_message(s: socket.socket) -> bytes:
+    length = s.recv(4)
+
+    while not length or not int.from_bytes(length):
+        length = s.recv(4)
+
+    message = s.recv(int.from_bytes(length))
+
+    # If we didn't receive the full message for some reason, keep gobbling.
+    while len(message) < int.from_bytes(length):
+        message += s.recv(int.from_bytes(length) - len(message))
+
+    return length + message
 
 
 def calculate_last_piece_length(
