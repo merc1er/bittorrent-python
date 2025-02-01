@@ -87,7 +87,8 @@ def download_piece(
 
             data.extend(message[13:])
 
-        with open(output_file_path, "wb") as f:
+        piece_file_name = f"{output_file_path}.part{piece_index}"
+        with open(piece_file_name, "wb") as f:
             f.write(data)
 
 

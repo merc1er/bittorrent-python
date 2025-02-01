@@ -1,4 +1,5 @@
 import json
+import os
 import sys
 
 import bencodepy
@@ -51,6 +52,24 @@ def main():
         download_piece(
             torrent_file_content, piece_index, output_file_path, total_number_of_pieces
         )
+    elif command == "download":
+        output_file_path = sys.argv[3]
+        torrent = Torrent.from_file(sys.argv[4])
+        total_number_of_pieces = len(torrent.pieces)
+        print(f"Total number of pieces: {total_number_of_pieces}")
+        torrent_file_content = read_torrent_file_raw(sys.argv[4])
+        for i in range(total_number_of_pieces):
+            download_piece(
+                torrent_file_content, i, output_file_path, total_number_of_pieces
+            )
+
+        with open(output_file_path, "wb") as final_file:
+            for i in range(total_number_of_pieces):
+                piece_file_name = f"{output_file_path}.part{i}"
+                with open(piece_file_name, "rb") as piece_file:
+                    final_file.write(piece_file.read())
+                os.remove(piece_file_name)
+
     else:
         raise NotImplementedError(f"Unknown command {command}")
 
