@@ -42,4 +42,7 @@ def get_peers(url: str, info_hash: dict, left: int) -> list[str]:
         print(f"Error: {e}")
 
     decoded_response = bencodepy.decode(response.content)
+    print("💃🏻💃🏻💃🏻💃🏻")
+    print(decoded_response)
+    print("💃🏻💃🏻💃🏻💃🏻")
     return decode_peers(decoded_response[b"peers"])
