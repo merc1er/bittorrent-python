@@ -62,7 +62,6 @@ def download_piece(
         data = bytearray()
         for block_index in range(number_of_blocks):
             begin = 2**14 * block_index
-            print(f"begin: {begin}")
             block_length = min(piece_length - begin, 2**14)
             print(
                 f"Requesting block {block_index + 1} of {number_of_blocks} with length"
@@ -72,19 +71,8 @@ def download_piece(
             request_payload = struct.pack(
                 ">IBIII", 13, 6, piece_index, begin, block_length
             )
-            print("Requesting block, with payload:")
-            print(request_payload)
-
-            print(struct.unpack(">IBIII", request_payload))
-
-            print(int.from_bytes(request_payload[:4]))
-            print(int.from_bytes(request_payload[4:5]))
-            print(int.from_bytes(request_payload[5:9]))
-            print(int.from_bytes(request_payload[17:21]))
             sock.sendall(request_payload)
-
             message = receive_message(sock)
-
             data.extend(message[13:])
 
         piece_file_name = f"{output_file_path}.part{piece_index}"
