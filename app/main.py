@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import sys
@@ -58,10 +59,23 @@ def main():
         total_number_of_pieces = len(torrent.pieces)
         print(f"Total number of pieces: {total_number_of_pieces}")
         torrent_file_content = read_torrent_file_raw(sys.argv[4])
-        for i in range(total_number_of_pieces):
-            download_piece(
-                torrent_file_content, i, output_file_path, total_number_of_pieces
-            )
+
+        async def download_all_pieces():
+            tasks = []
+            for i in range(total_number_of_pieces):
+                tasks.append(
+                    asyncio.create_task(
+                        download_piece(
+                            torrent_file_content,
+                            i,
+                            output_file_path,
+                            total_number_of_pieces,
+                        )
+                    )
+                )
+                await asyncio.gather(*tasks)
+
+        asyncio.run(download_all_pieces())
 
         with open(output_file_path, "wb") as final_file:
             for i in range(total_number_of_pieces):
