@@ -39,7 +39,7 @@ def download_piece(
 
     peers = get_peers(
         url=tracker_url,
-        info_hash=torrent_file_content[b"info"],
+        info=torrent_file_content[b"info"],
         left=torrent_file_content[b"info"][b"length"],
     )
     ip, port = peers[0].split(":")

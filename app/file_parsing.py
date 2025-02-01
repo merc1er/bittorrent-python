@@ -22,8 +22,8 @@ def decode_peers(peers: bytes) -> list[str]:
     return decoded_peers
 
 
-def get_peers(url: str, info_hash: dict, left: int) -> list[str]:
-    url_encoded_info_hash = sha1(bencodepy.encode(info_hash)).digest()
+def get_peers(url: str, info: dict, left: int) -> list[str]:
+    url_encoded_info_hash = sha1(bencodepy.encode(info)).digest()
 
     params = {
         "info_hash": url_encoded_info_hash,
@@ -42,7 +42,4 @@ def get_peers(url: str, info_hash: dict, left: int) -> list[str]:
         print(f"Error: {e}")
 
     decoded_response = bencodepy.decode(response.content)
-    print("💃🏻💃🏻💃🏻💃🏻")
-    print(decoded_response)
-    print("💃🏻💃🏻💃🏻💃🏻")
     return decode_peers(decoded_response[b"peers"])

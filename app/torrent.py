@@ -7,6 +7,7 @@ import bencodepy
 @dataclass
 class Torrent:
     tracker_url: str
+    info: dict
     info_hash: str
     length: int
     piece_length: int
@@ -29,6 +30,7 @@ class Torrent:
 
         return cls(
             tracker_url=tracker_url,
+            info=info,
             info_hash=cls.calculate_sha1(info),
             length=length,
             piece_length=piece_length,

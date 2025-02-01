@@ -32,7 +32,7 @@ def main():
         elif command == "peers":
             peers = get_peers(
                 url=torrent.tracker_url,
-                info_hash=torrent.info_hash,
+                info=torrent.info,
                 left=torrent.length,
             )
             for peer in peers:
