@@ -26,23 +26,26 @@ def main():
             bencoded_value = sys.argv[2].encode()
             decoded_value = bc.decode(bencoded_value)
             print(json.dumps(decoded_value))
-        case "info" | "peers" | "handshake":
-            torrent = Torrent.from_file(sys.argv[2])
 
-            if command == "info":
-                torrent.print_info()
-            elif command == "peers":
-                peers = get_peers(
-                    url=torrent.tracker_url,
-                    info=torrent.info,
-                    left=torrent.length,
-                )
-                for peer in peers:
-                    print(peer)
-            elif command == "handshake":
-                ip, port = sys.argv[3].split(":")
-                # print(f"Connecting to {ip}:{port}")
-                perform_handshake_standalone(ip, port, torrent.info_hash)
+        case "info":
+            torrent = Torrent.from_file(sys.argv[2])
+            torrent.print_info()
+
+        case "peers":
+            torrent = Torrent.from_file(sys.argv[2])
+            peers = get_peers(
+                url=torrent.tracker_url,
+                info=torrent.info,
+                left=torrent.length,
+            )
+            for peer in peers:
+                print(peer)
+
+        case "handshake":
+            torrent = Torrent.from_file(sys.argv[2])
+            ip, port = sys.argv[3].split(":")
+            perform_handshake_standalone(ip, port, torrent.info_hash)
+
         case "download_piece":
             output_file_path = sys.argv[3]
             torrent = Torrent.from_file(sys.argv[4])
@@ -56,6 +59,8 @@ def main():
                 output_file_path,
                 total_number_of_pieces,
             )
+            os.remove(f"{output_file_path}.part{piece_index}")
+
         case "download":
             output_file_path = sys.argv[3]
             torrent = Torrent.from_file(sys.argv[4])
@@ -77,6 +82,7 @@ def main():
                     with open(piece_file_name, "rb") as piece_file:
                         final_file.write(piece_file.read())
                     os.remove(piece_file_name)
+
         case _:
             raise NotImplementedError(f"Unknown command {command}")
 
