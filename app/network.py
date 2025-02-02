@@ -14,7 +14,7 @@ from app.settings import PEER_ID
 
 
 # Entrypoint
-async def download_piece(
+def download_piece(
     torrent_file_content: dict,
     piece_index: int,
     output_file_path: str,
