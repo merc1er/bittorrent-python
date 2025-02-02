@@ -51,3 +51,23 @@ class Torrent:
         print("Piece Hashes:")
         for piece in self.pieces:
             print(piece)
+
+
+@dataclass
+class Peer:
+    ip: str
+    port: int
+
+    def __str__(self) -> str:
+        return f"{self.ip}:{self.port}"
+
+    @classmethod
+    def from_bytes(cls, peers: bytes) -> list["Peer"]:
+        decoded_peers = []
+        while peers:
+            ip = ".".join(str(x) for x in peers[:4])
+            port = int.from_bytes(peers[4:6], byteorder="big")
+            decoded_peers.append(cls(ip=ip, port=port))
+            peers = peers[6:]
+
+        return decoded_peers

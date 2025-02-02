@@ -42,10 +42,10 @@ def download_piece(
         info=torrent_file_content[b"info"],
         left=torrent_file_content[b"info"][b"length"],
     )
-    ip, port = peers[0].split(":")
+    first_peer = peers[0]
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.connect((ip, int(port)))
+        sock.connect((first_peer.ip, int(first_peer.port)))
         sock.settimeout(2)
         perform_handshake(bytes.fromhex(info_hash), sock)
 
