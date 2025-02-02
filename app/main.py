@@ -5,8 +5,8 @@ import sys
 import bencodepy
 
 from app.file_parsing import get_peers
+from app.models import Torrent
 from app.network import download_piece, perform_handshake_standalone
-from app.torrent import Torrent
 
 bc = bencodepy.BencodeDecoder(encoding="utf-8")
 
