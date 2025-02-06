@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from hashlib import sha1
+from urllib.parse import parse_qs, urlparse
 
 import bencodepy  # type: ignore
 import requests
@@ -36,7 +37,7 @@ class Torrent:
     piece_length: int
     pieces: list[bytes]
     decoded_value: dict
-    peers: list[Peer] = None
+    peers: list[Peer] | None = None
 
     @classmethod
     def from_file(cls, file_path: str) -> "Torrent":
@@ -61,6 +62,17 @@ class Torrent:
             pieces=pieces,
             decoded_value=torrent_data,
         )
+
+    @classmethod
+    def from_magnet_link(cls, magnet_link: str) -> None:
+        parsed = urlparse(magnet_link)
+        params = parse_qs(parsed.query)
+
+        tracker_url = params.get("tr", [""])[0]
+        info_hash = params.get("xt", [""])[0][9:]
+
+        print("Tracker URL:", tracker_url)
+        print("Info Hash:", info_hash)
 
     @staticmethod
     def calculate_sha1(data: dict) -> str:

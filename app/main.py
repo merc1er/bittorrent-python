@@ -80,6 +80,10 @@ async def main():
                         final_file.write(piece_file.read())
                     os.remove(piece_file_name)
 
+        case "magnet_parse":
+            magnet_link = sys.argv[2]
+            torrent = Torrent.from_magnet_link(magnet_link)
+
         case _:
             raise NotImplementedError(f"Unknown command {command}")
 
