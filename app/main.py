@@ -42,7 +42,7 @@ async def main():
             print(f"Total number of pieces: {len(torrent.pieces)}")
             piece_index = int(sys.argv[5])
             await download_piece(torrent, piece_index, output_file_path)
-            os.remove(f"{output_file_path}.part{piece_index}")
+            os.rename(f"{output_file_path}.part{piece_index}", output_file_path)
 
         case "download":
             output_file_path = sys.argv[3]
