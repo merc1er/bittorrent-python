@@ -12,7 +12,6 @@ import struct
 
 from app.models import Peer, Torrent
 from app.settings import PEER_ID
-from app.utils import calculate_sha1
 
 
 # Entrypoint
