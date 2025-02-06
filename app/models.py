@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from hashlib import sha1
 
-import bencodepy
+import bencodepy  # type: ignore
 
 
 @dataclass

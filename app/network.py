@@ -5,6 +5,7 @@ Example call:
 python app/main.py download_piece -o /tmp/test-piece sample.torrent <piece_index>
 """
 
+import asyncio
 import math
 import socket
 import struct
@@ -14,7 +15,7 @@ from app.settings import PEER_ID
 
 
 # Entrypoint
-def download_piece(
+async def download_piece(
     torrent_file_content: dict,
     piece_index: int,
     output_file_path: str,
@@ -44,40 +45,40 @@ def download_piece(
     )
     first_peer = peers[0]
 
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.connect((first_peer.ip, int(first_peer.port)))
-        sock.settimeout(2)
-        perform_handshake(bytes.fromhex(info_hash), sock)
+    reader, writer = await asyncio.open_connection(first_peer.ip, int(first_peer.port))
+    await perform_handshake(bytes.fromhex(info_hash), writer=writer, reader=reader)
 
-        print("Waiting for bitfield message...")
-        read_message(sock, 5)
+    print("Waiting for bitfield message...")
+    await read_message(5, writer=writer, reader=reader)
 
-        interested_message = b"\x00\x00\x00\x01\x02"
-        sock.sendall(interested_message)
+    # Interested message.
+    interested_message = b"\x00\x00\x00\x01\x02"
+    writer.write(interested_message)
+    await writer.drain()
 
-        print("🫸🏻 Waiting for unchoke message...")
-        read_message(sock, 1)
-        print("📥 Received unchoke message.")
+    print("🫸🏻 Waiting for unchoke message...")
+    await read_message(1, writer=writer, reader=reader)
+    print("📥 Received unchoke message.")
 
-        data = bytearray()
-        for block_index in range(number_of_blocks):
-            begin = 2**14 * block_index
-            block_length = min(piece_length - begin, 2**14)
-            print(
-                f"Requesting block {block_index + 1} of {number_of_blocks} with length"
-                f" {block_length}"
-            )
+    data = bytearray()
+    for block_index in range(number_of_blocks):
+        begin = 2**14 * block_index
+        block_length = min(piece_length - begin, 2**14)
+        print(
+            f"Requesting block {block_index + 1} of {number_of_blocks} with length"
+            f" {block_length}"
+        )
 
-            request_payload = struct.pack(
-                ">IBIII", 13, 6, piece_index, begin, block_length
-            )
-            sock.sendall(request_payload)
-            message = receive_message(sock)
-            data.extend(message[13:])
+        request_payload = struct.pack(">IBIII", 13, 6, piece_index, begin, block_length)
+        writer.write(request_payload)
+        await writer.drain()
 
-        piece_file_name = f"{output_file_path}.part{piece_index}"
-        with open(piece_file_name, "wb") as f:
-            f.write(data)
+        message = await read_message(7, writer=writer, reader=reader)
+        data.extend(message[13:])
+
+    piece_file_name = f"{output_file_path}.part{piece_index}"
+    with open(piece_file_name, "wb") as f:
+        f.write(data)
 
 
 def receive_message(s: socket.socket) -> bytes:
@@ -101,42 +102,51 @@ def calculate_last_piece_length(
     return file_length - (default_piece_length * (total_number_of_pieces - 1))
 
 
-def perform_handshake(info_hash: bytes, sock: socket.socket) -> None:
+async def perform_handshake(
+    info_hash: bytes, writer: asyncio.StreamWriter, reader: asyncio.StreamReader
+) -> None:
     data = b"\x13BitTorrent protocol" + b"\x00" * 8 + info_hash + PEER_ID.encode()
-    sock.sendall(data)
-    response = sock.recv(68)
+    writer.write(data)
+    await writer.drain()
+
+    response = await reader.readexactly(68)
     response_peer_id = response[48:].hex()
     print("Peer ID:", response_peer_id)
 
 
-def perform_handshake_standalone(ip: str, port: str, info_hash: str) -> None:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.connect((ip, int(port)))
-        perform_handshake(bytes.fromhex(info_hash), sock)
+async def perform_handshake_standalone(ip: str, port: str, info_hash: str) -> None:
+    reader, writer = await asyncio.open_connection(ip, int(port))
+    await perform_handshake(bytes.fromhex(info_hash), writer, reader)
+    writer.close()
+    await writer.wait_closed()
 
 
-def receive_full_message(sock: socket.socket, length: int) -> bytes:
+async def receive_full_message(
+    length: int, writer: asyncio.StreamWriter, reader: asyncio.StreamReader
+) -> bytes:
     data = b""
     while len(data) < length:
-        chunk = sock.recv(length - len(data))
+        chunk = await reader.read(length - len(data))
         if not chunk:
             raise ConnectionError("Connection closed before full message was received")
         data += chunk
     return data
 
 
-def read_message(sock: socket.socket, expected_message_id: int) -> bytes:
+async def read_message(
+    expected_message_id: int, writer: asyncio.StreamWriter, reader: asyncio.StreamReader
+) -> bytes:
     """
     Waits for a message with the specified ID from the peer.
     """
 
-    length_bytes = receive_full_message(sock, 4)
+    length_bytes = await receive_full_message(4, writer, reader)
     total_length = int.from_bytes(length_bytes, "big")
 
     if total_length == 0:
         raise ValueError("Received a zero-length message, which is unexpected.")
 
-    message = receive_full_message(sock, total_length)
+    message = await receive_full_message(total_length, writer, reader)
 
     message_id = message[0]
     if message_id == expected_message_id:

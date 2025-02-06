@@ -1,6 +1,6 @@
 from hashlib import sha1
 
-import bencodepy
+import bencodepy  # type: ignore
 import requests
 
 from app.models import Peer

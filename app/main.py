@@ -1,8 +1,9 @@
+import asyncio
 import json
 import os
 import sys
 
-import bencodepy
+import bencodepy  # type: ignore
 
 from app.file_parsing import get_peers
 from app.models import Torrent
@@ -18,7 +19,7 @@ def read_torrent_file_raw(file_path: str) -> dict:
     return decoded_data
 
 
-def main():
+async def main():
     command = sys.argv[1]
 
     match command:
@@ -44,7 +45,7 @@ def main():
         case "handshake":
             torrent = Torrent.from_file(sys.argv[2])
             ip, port = sys.argv[3].split(":")
-            perform_handshake_standalone(ip, port, torrent.info_hash)
+            await perform_handshake_standalone(ip, port, torrent.info_hash)
 
         case "download_piece":
             output_file_path = sys.argv[3]
@@ -53,7 +54,7 @@ def main():
             print(f"Total number of pieces: {total_number_of_pieces}")
             torrent_file_content = read_torrent_file_raw(sys.argv[4])
             piece_index = int(sys.argv[5])
-            download_piece(
+            await download_piece(
                 torrent_file_content,
                 piece_index,
                 output_file_path,
@@ -69,7 +70,7 @@ def main():
             torrent_file_content = read_torrent_file_raw(sys.argv[4])
 
             for piece_index in range(total_number_of_pieces):
-                download_piece(
+                await download_piece(
                     torrent_file_content,
                     piece_index,
                     output_file_path,
@@ -88,4 +89,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
