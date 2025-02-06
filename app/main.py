@@ -11,13 +11,6 @@ from app.network import download_piece, perform_handshake_standalone
 bc = bencodepy.BencodeDecoder(encoding="utf-8")
 
 
-def read_torrent_file_raw(file_path: str) -> dict:
-    with open(file_path, "rb") as f:
-        data = f.read()
-        decoded_data = bencodepy.decode(data)
-    return decoded_data
-
-
 async def main():
     command = sys.argv[1]
 
