@@ -36,6 +36,7 @@ class Torrent:
     piece_length: int
     pieces: list[bytes]
     decoded_value: dict
+    peers: list[Peer] = None
 
     @classmethod
     def from_file(cls, file_path: str) -> "Torrent":
@@ -94,4 +95,5 @@ class Torrent:
             print(f"Error: {e}")
 
         decoded_response = bencodepy.decode(response.content)
-        return Peer.from_bytes(decoded_response[b"peers"])
+        self.peers = Peer.from_bytes(decoded_response[b"peers"])
+        return self.peers

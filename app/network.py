@@ -10,14 +10,14 @@ import math
 import socket
 import struct
 
-from app.models import Torrent
+from app.models import Peer, Torrent
 from app.settings import PEER_ID
 from app.utils import calculate_sha1
 
 
 # Entrypoint
 async def download_piece(
-    torrent: Torrent, piece_index: int, output_file_path: str
+    torrent: Torrent, piece_index: int, output_file_path: str, peer: Peer | None = None
 ) -> None:
     info_hash = torrent.info_hash
     file_length = torrent.length
@@ -36,10 +36,11 @@ async def download_piece(
 
     number_of_blocks = math.ceil(piece_length / (16 * 1024))
 
-    peers = torrent.get_peers()
-    first_peer = peers[0]
+    if not peer:
+        peers = torrent.get_peers()
+        peer = peers[0]
 
-    reader, writer = await asyncio.open_connection(first_peer.ip, int(first_peer.port))
+    reader, writer = await asyncio.open_connection(peer.ip, int(peer.port))
     await perform_handshake(bytes.fromhex(info_hash), writer=writer, reader=reader)
 
     print("Waiting for bitfield message...")

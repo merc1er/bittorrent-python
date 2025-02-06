@@ -1,4 +1,5 @@
 import asyncio
+import itertools
 import json
 import os
 import sys
@@ -46,10 +47,31 @@ async def main():
         case "download":
             output_file_path = sys.argv[3]
             torrent = Torrent.from_file(sys.argv[4])
+            torrent.get_peers()
+
             print(f"Total number of pieces: {len(torrent.pieces)}")
+            print(f"Found {len(torrent.peers)} peers.")
+
+            peers_cycle = itertools.cycle(torrent.peers)
+            tasks = []
 
             for piece_index in range(len(torrent.pieces)):
-                await download_piece(torrent, piece_index, output_file_path)
+                peer = next(peers_cycle)
+                tasks.append(
+                    asyncio.create_task(
+                        download_piece(torrent, piece_index, output_file_path, peer)
+                    )
+                )
+
+                # Limit the number of concurrent tasks based on the number of peers.
+                if len(tasks) >= len(torrent.peers):
+                    done, pending = await asyncio.wait(
+                        tasks, return_when=asyncio.FIRST_COMPLETED
+                    )
+                    tasks = list(pending)  # Reassign pending tasks to tasks.
+
+            # Wait for any remaining tasks to complete.
+            await asyncio.gather(*tasks)
 
             with open(output_file_path, "wb") as final_file:
                 for piece_index in range(len(torrent.pieces)):
