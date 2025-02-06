@@ -10,27 +10,25 @@ import math
 import socket
 import struct
 
-from app.file_parsing import calculate_sha1, get_peers
+from app.models import Torrent
 from app.settings import PEER_ID
+from app.utils import calculate_sha1
 
 
 # Entrypoint
 async def download_piece(
-    torrent_file_content: dict,
-    piece_index: int,
-    output_file_path: str,
-    total_number_of_pieces: int,
-):
-    info_hash = calculate_sha1(torrent_file_content[b"info"])
-    tracker_url = torrent_file_content[b"announce"].decode("utf-8")
-    file_length = torrent_file_content[b"info"][b"length"]
+    torrent: Torrent, piece_index: int, output_file_path: str
+) -> None:
+    info_hash = torrent.info_hash
+    file_length = torrent.length
+    total_number_of_pieces = len(torrent.pieces)
 
     if piece_index >= total_number_of_pieces:
         raise ValueError(
             f"{piece_index=} is too big. Torrent has {total_number_of_pieces} pieces."
         )
 
-    default_piece_length = torrent_file_content[b"info"][b"piece length"]
+    default_piece_length = torrent.piece_length
     if piece_index == total_number_of_pieces - 1:
         piece_length = file_length - (default_piece_length * piece_index)
     else:
@@ -38,11 +36,7 @@ async def download_piece(
 
     number_of_blocks = math.ceil(piece_length / (16 * 1024))
 
-    peers = get_peers(
-        url=tracker_url,
-        info=torrent_file_content[b"info"],
-        left=torrent_file_content[b"info"][b"length"],
-    )
+    peers = torrent.get_peers()
     first_peer = peers[0]
 
     reader, writer = await asyncio.open_connection(first_peer.ip, int(first_peer.port))

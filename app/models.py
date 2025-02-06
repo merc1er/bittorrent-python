@@ -2,6 +2,29 @@ from dataclasses import dataclass
 from hashlib import sha1
 
 import bencodepy  # type: ignore
+import requests
+
+from app.settings import PEER_ID
+
+
+@dataclass
+class Peer:
+    ip: str
+    port: int
+
+    def __str__(self) -> str:
+        return f"{self.ip}:{self.port}"
+
+    @classmethod
+    def from_bytes(cls, peers: bytes) -> list["Peer"]:
+        decoded_peers = []
+        while peers:
+            ip = ".".join(str(x) for x in peers[:4])
+            port = int.from_bytes(peers[4:6], byteorder="big")
+            decoded_peers.append(cls(ip=ip, port=port))
+            peers = peers[6:]
+
+        return decoded_peers
 
 
 @dataclass
@@ -52,22 +75,23 @@ class Torrent:
         for piece in self.pieces:
             print(piece)
 
+    def get_peers(self) -> list[Peer]:
+        url_encoded_info_hash = sha1(bencodepy.encode(self.info)).digest()
+        params = {
+            "info_hash": url_encoded_info_hash,
+            "peer_id": PEER_ID,
+            "port": 6881,
+            "uploaded": 0,
+            "downloaded": 0,
+            "left": self.length,
+            "compact": 1,
+        }
+        try:
+            response = requests.get(self.tracker_url, params=params)
+        except requests.RequestException as e:
+            if isinstance(e, requests.HTTPError):
+                print(response.text)
+            print(f"Error: {e}")
 
-@dataclass
-class Peer:
-    ip: str
-    port: int
-
-    def __str__(self) -> str:
-        return f"{self.ip}:{self.port}"
-
-    @classmethod
-    def from_bytes(cls, peers: bytes) -> list["Peer"]:
-        decoded_peers = []
-        while peers:
-            ip = ".".join(str(x) for x in peers[:4])
-            port = int.from_bytes(peers[4:6], byteorder="big")
-            decoded_peers.append(cls(ip=ip, port=port))
-            peers = peers[6:]
-
-        return decoded_peers
+        decoded_response = bencodepy.decode(response.content)
+        return Peer.from_bytes(decoded_response[b"peers"])

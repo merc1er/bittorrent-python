@@ -5,7 +5,6 @@ import sys
 
 import bencodepy  # type: ignore
 
-from app.file_parsing import get_peers
 from app.models import Torrent
 from app.network import download_piece, perform_handshake_standalone
 
@@ -34,11 +33,7 @@ async def main():
 
         case "peers":
             torrent = Torrent.from_file(sys.argv[2])
-            peers = get_peers(
-                url=torrent.tracker_url,
-                info=torrent.info,
-                left=torrent.length,
-            )
+            peers = torrent.get_peers()
             for peer in peers:
                 print(peer)
 
@@ -50,35 +45,21 @@ async def main():
         case "download_piece":
             output_file_path = sys.argv[3]
             torrent = Torrent.from_file(sys.argv[4])
-            total_number_of_pieces = len(torrent.pieces)
-            print(f"Total number of pieces: {total_number_of_pieces}")
-            torrent_file_content = read_torrent_file_raw(sys.argv[4])
+            print(f"Total number of pieces: {len(torrent.pieces)}")
             piece_index = int(sys.argv[5])
-            await download_piece(
-                torrent_file_content,
-                piece_index,
-                output_file_path,
-                total_number_of_pieces,
-            )
+            await download_piece(torrent, piece_index, output_file_path)
             os.remove(f"{output_file_path}.part{piece_index}")
 
         case "download":
             output_file_path = sys.argv[3]
             torrent = Torrent.from_file(sys.argv[4])
-            total_number_of_pieces = len(torrent.pieces)
-            print(f"Total number of pieces: {total_number_of_pieces}")
-            torrent_file_content = read_torrent_file_raw(sys.argv[4])
+            print(f"Total number of pieces: {len(torrent.pieces)}")
 
-            for piece_index in range(total_number_of_pieces):
-                await download_piece(
-                    torrent_file_content,
-                    piece_index,
-                    output_file_path,
-                    total_number_of_pieces,
-                )
+            for piece_index in range(len(torrent.pieces)):
+                await download_piece(torrent, piece_index, output_file_path)
 
             with open(output_file_path, "wb") as final_file:
-                for piece_index in range(total_number_of_pieces):
+                for piece_index in range(len(torrent.pieces)):
                     piece_file_name = f"{output_file_path}.part{piece_index}"
                     with open(piece_file_name, "rb") as piece_file:
                         final_file.write(piece_file.read())
