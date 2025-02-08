@@ -138,16 +138,11 @@ async def perform_handshake(
     reader: asyncio.StreamReader,
     signal_extensions: bool = False,
 ) -> None:
+    reserved = bytearray(8)
     if signal_extensions:
-        data = (
-            b"\x13BitTorrent protocol"
-            + b"\x00" * 8
-            + info_hash
-            + PEER_ID.encode()
-            + b"\x00\x00\x00\x00\x00\x10\x00\x00"
-        )
-    else:
-        data = b"\x13BitTorrent protocol" + b"\x00" * 8 + info_hash + PEER_ID.encode()
+        reserved[5] |= 0x10
+
+    data = b"\x13BitTorrent protocol" + reserved + info_hash + PEER_ID.encode()
     writer.write(data)
     await writer.drain()
 
