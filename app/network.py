@@ -54,6 +54,16 @@ async def download_piece(
     await read_message(1, writer=writer, reader=reader)
     print("📥 Received unchoke message.")
 
+    data = await download_blocks(
+        piece_index, piece_length, number_of_blocks, reader, writer
+    )
+
+    piece_file_name = f"{output_file_path}.part{piece_index}"
+    with open(piece_file_name, "wb") as f:
+        f.write(data)
+
+
+async def download_blocks(piece_index, piece_length, number_of_blocks, reader, writer):
     data = bytearray()
     for block_index in range(number_of_blocks):
         begin = 2**14 * block_index
@@ -69,10 +79,7 @@ async def download_piece(
 
         message = await read_message(7, writer=writer, reader=reader)
         data.extend(message[13:])
-
-    piece_file_name = f"{output_file_path}.part{piece_index}"
-    with open(piece_file_name, "wb") as f:
-        f.write(data)
+    return data
 
 
 def receive_message(s: socket.socket) -> bytes:
