@@ -31,12 +31,12 @@ class Peer:
 @dataclass
 class Torrent:
     tracker_url: str
-    info: dict
     info_hash: str
-    length: int
-    piece_length: int
-    pieces: list[bytes]
-    decoded_value: dict
+    info: dict | None = None
+    length: int | None = None
+    piece_length: int | None = None
+    pieces: list[bytes] | None = None
+    decoded_value: dict | None = None
     peers: list[Peer] | None = None
 
     @classmethod
@@ -64,7 +64,7 @@ class Torrent:
         )
 
     @classmethod
-    def from_magnet_link(cls, magnet_link: str) -> None:
+    def from_magnet_link(cls, magnet_link: str) -> "Torrent":
         parsed = urlparse(magnet_link)
         params = parse_qs(parsed.query)
 
@@ -73,6 +73,8 @@ class Torrent:
 
         print("Tracker URL:", tracker_url)
         print("Info Hash:", info_hash)
+
+        return cls(tracker_url=tracker_url, info_hash=info_hash)
 
     @staticmethod
     def calculate_sha1(data: dict) -> str:
@@ -85,18 +87,21 @@ class Torrent:
         print("Info Hash:", self.info_hash)
         print("Piece Length:", self.piece_length)
         print("Piece Hashes:")
+        if not self.pieces:
+            print("No pieces.")
+            return
         for piece in self.pieces:
             print(piece)
 
     def get_peers(self) -> list[Peer]:
-        url_encoded_info_hash = sha1(bencodepy.encode(self.info)).digest()
+        url_encoded_info_hash = bytes.fromhex(self.info_hash)
         params = {
             "info_hash": url_encoded_info_hash,
             "peer_id": PEER_ID,
             "port": 6881,
             "uploaded": 0,
             "downloaded": 0,
-            "left": self.length,
+            "left": 999,
             "compact": 1,
         }
         try:

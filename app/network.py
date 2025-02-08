@@ -133,9 +133,21 @@ def calculate_last_piece_length(
 
 
 async def perform_handshake(
-    info_hash: bytes, writer: asyncio.StreamWriter, reader: asyncio.StreamReader
+    info_hash: bytes,
+    writer: asyncio.StreamWriter,
+    reader: asyncio.StreamReader,
+    signal_extensions: bool = False,
 ) -> None:
-    data = b"\x13BitTorrent protocol" + b"\x00" * 8 + info_hash + PEER_ID.encode()
+    if signal_extensions:
+        data = (
+            b"\x13BitTorrent protocol"
+            + b"\x00" * 8
+            + info_hash
+            + PEER_ID.encode()
+            + b"\x00\x00\x00\x00\x00\x10\x00\x00"
+        )
+    else:
+        data = b"\x13BitTorrent protocol" + b"\x00" * 8 + info_hash + PEER_ID.encode()
     writer.write(data)
     await writer.drain()
 
@@ -144,9 +156,11 @@ async def perform_handshake(
     print("Peer ID:", response_peer_id)
 
 
-async def perform_handshake_standalone(ip: str, port: str, info_hash: str) -> None:
-    reader, writer = await asyncio.open_connection(ip, int(port))
-    await perform_handshake(bytes.fromhex(info_hash), writer, reader)
+async def perform_handshake_standalone(
+    peer: Peer, info_hash: str, signal_extension: bool = False
+) -> None:
+    reader, writer = await asyncio.open_connection(peer.ip, int(peer.port))
+    await perform_handshake(bytes.fromhex(info_hash), writer, reader, signal_extension)
     writer.close()
     await writer.wait_closed()
 

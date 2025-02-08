@@ -6,7 +6,7 @@ import sys
 
 import bencodepy  # type: ignore
 
-from app.models import Torrent
+from app.models import Peer, Torrent
 from app.network import download_piece, perform_handshake_standalone
 
 bc = bencodepy.BencodeDecoder(encoding="utf-8")
@@ -34,7 +34,8 @@ async def main():
         case "handshake":
             torrent = Torrent.from_file(sys.argv[2])
             ip, port = sys.argv[3].split(":")
-            await perform_handshake_standalone(ip, port, torrent.info_hash)
+            peer = Peer(ip=ip, port=port)
+            await perform_handshake_standalone(peer, torrent.info_hash)
 
         case "download_piece":
             output_file_path = sys.argv[3]
@@ -83,6 +84,15 @@ async def main():
         case "magnet_parse":
             magnet_link = sys.argv[2]
             torrent = Torrent.from_magnet_link(magnet_link)
+
+        case "magnet_handshake":
+            magnet_link = sys.argv[2]
+            torrent = Torrent.from_magnet_link(magnet_link)
+            torrent.get_peers()
+            peer = torrent.peers[0]
+            await perform_handshake_standalone(
+                peer, torrent.info_hash, signal_extension=True
+            )
 
         case _:
             raise NotImplementedError(f"Unknown command {command}")
