@@ -63,22 +63,51 @@ async def download_piece(
         f.write(data)
 
 
-async def download_blocks(piece_index, piece_length, number_of_blocks, reader, writer):
+async def download_blocks(
+    piece_index: int,
+    piece_length: int,
+    number_of_blocks: int,
+    reader: asyncio.StreamReader,
+    writer: asyncio.StreamWriter,
+) -> bytes:
     data = bytearray()
-    for block_index in range(number_of_blocks):
-        begin = 2**14 * block_index
-        block_length = min(piece_length - begin, 2**14)
-        print(
-            f"Requesting block {block_index + 1} of {number_of_blocks} with length"
-            f" {block_length}"
-        )
+    semaphore = asyncio.Semaphore(5)
+    response_queue: asyncio.Queue[tuple[int, bytes]] = asyncio.Queue()
 
-        request_payload = struct.pack(">IBIII", 13, 6, piece_index, begin, block_length)
-        writer.write(request_payload)
-        await writer.drain()
+    async def send_requests():
+        """Sends block requests concurrently but limits outgoing requests."""
+        for block_index in range(number_of_blocks):
+            async with semaphore:
+                begin = 2**14 * block_index
+                block_length = min(piece_length - begin, 2**14)
+                print(
+                    f"Requesting block {block_index + 1} of {number_of_blocks} with "
+                    f" length {block_length}"
+                )
 
-        message = await read_message(7, writer=writer, reader=reader)
-        data.extend(message[13:])
+                request_payload = struct.pack(
+                    ">IBIII", 13, 6, piece_index, begin, block_length
+                )
+                writer.write(request_payload)
+                await writer.drain()
+
+    async def receive_responses():
+        """Reads incoming messages and stores them in the queue."""
+        for _ in range(number_of_blocks):
+            message = await read_message(7, writer=writer, reader=reader)
+            block_index = (
+                struct.unpack(">I", message[9:13])[0] // 2**14
+            )  # Extract block index
+            await response_queue.put((block_index, message[13:]))
+
+    # Start sending and receiving concurrently
+    await asyncio.gather(send_requests(), receive_responses())
+
+    # Process blocks in order
+    results = [await response_queue.get() for _ in range(number_of_blocks)]
+    for _, block_data in sorted(results):
+        data.extend(block_data)
+
     return data
 
 
