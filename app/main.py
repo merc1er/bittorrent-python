@@ -7,7 +7,13 @@ import sys
 import bencodepy  # type: ignore
 
 from app.models import Peer, Torrent
-from app.network import download_piece, perform_handshake_standalone
+from app.network import (
+    download_piece,
+    perform_extension_handshake,
+    perform_handshake,
+    perform_handshake_standalone,
+    read_message,
+)
 
 bc = bencodepy.BencodeDecoder(encoding="utf-8")
 
@@ -90,9 +96,22 @@ async def main():
             torrent = Torrent.from_magnet_link(magnet_link)
             torrent.get_peers()
             peer = torrent.peers[0]
-            await perform_handshake_standalone(
-                peer, torrent.info_hash, signal_extension=True
+
+            reader, writer = await asyncio.open_connection(peer.ip, int(peer.port))
+            await perform_handshake(
+                info_hash=bytes.fromhex(torrent.info_hash),
+                writer=writer,
+                reader=reader,
+                signal_extensions=True,
             )
+
+            print("Waiting for bitfield message...")
+            await read_message(5, writer=writer, reader=reader)
+
+            await perform_extension_handshake(writer=writer, reader=reader)
+
+            writer.close()
+            await writer.wait_closed()
 
         case _:
             raise NotImplementedError(f"Unknown command {command}")

@@ -1,3 +1,4 @@
+import struct
 from dataclasses import dataclass
 from hashlib import sha1
 from urllib.parse import parse_qs, urlparse
@@ -6,6 +7,16 @@ import bencodepy  # type: ignore
 import requests
 
 from app.settings import PEER_ID
+
+
+@dataclass
+class Message:
+    id: int
+    payload: bytes
+
+    def to_bytes(self) -> bytes:
+        length = len(self.payload) + 1
+        return struct.pack(">IB", length, self.id) + self.payload
 
 
 @dataclass

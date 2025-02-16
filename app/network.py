@@ -10,7 +10,9 @@ import math
 import socket
 import struct
 
-from app.models import Peer, Torrent
+import bencodepy
+
+from app.models import Message, Peer, Torrent
 from app.settings import PEER_ID
 
 
@@ -158,6 +160,20 @@ async def perform_handshake_standalone(
     await perform_handshake(bytes.fromhex(info_hash), writer, reader, signal_extension)
     writer.close()
     await writer.wait_closed()
+
+
+async def perform_extension_handshake(
+    writer: asyncio.StreamWriter, reader: asyncio.StreamReader
+) -> None:
+    payload = {"m": {"ut_metadata": 69}}
+    message = Message(id=20, payload=bencodepy.encode(payload))
+    print(message)
+    print(message.to_bytes())
+    writer.write(message.to_bytes())
+    await writer.drain()
+
+    response = await read_message(20, writer, reader)
+    print("Received extension handshake response:", response)
 
 
 async def receive_full_message(
