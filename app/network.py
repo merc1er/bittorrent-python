@@ -169,14 +169,16 @@ async def perform_extension_handshake(
     encoded_payload = bencodepy.encode(payload)
     extension_id = b"\x00"
     message = Message(id=20, payload=extension_id + encoded_payload)
-    print(message)
-    print(message.to_bytes())
 
     writer.write(message.to_bytes())
     await writer.drain()
 
     response = await read_message(20, writer, reader)
     print("Received extension handshake response:", response)
+
+    decoded_response = bencodepy.decode(response[6:])
+    metadata_extension_id = decoded_response[b"m"][b"ut_metadata"]
+    print("Peer Metadata Extension ID:", metadata_extension_id)
 
 
 async def receive_full_message(
