@@ -16,7 +16,7 @@ class Message:
 
     def to_bytes(self) -> bytes:
         length = len(self.payload) + 1
-        return struct.pack(">IB", length, self.id) + b"\x00" + self.payload
+        return struct.pack(">IB", length, self.id) + self.payload
 
 
 @dataclass
