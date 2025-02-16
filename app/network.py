@@ -166,7 +166,7 @@ async def perform_extension_handshake(
     writer: asyncio.StreamWriter, reader: asyncio.StreamReader
 ) -> None:
     payload = {"m": {"ut_metadata": 69}}
-    message = Message(id=20, payload=bencodepy.encode(payload))
+    message = Message(id=0, payload=bencodepy.encode(payload))
     print(message)
     print(message.to_bytes())
     writer.write(message.to_bytes())
