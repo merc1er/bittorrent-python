@@ -180,6 +180,7 @@ async def perform_extension_handshake(
 
     decoded_response = bencodepy.decode(response[6:])
     metadata_extension_id = decoded_response[b"m"][b"ut_metadata"]
+    print("Peer Metadata Extension ID:", metadata_extension_id)
     return metadata_extension_id
 
 
