@@ -12,6 +12,7 @@ from app.network import (
     perform_extension_handshake,
     perform_handshake,
     perform_handshake_standalone,
+    read_data_message,
     read_message,
     send_request_metadata_message,
 )
@@ -129,14 +130,22 @@ async def main():
             )
 
             await read_message(5, writer=writer, reader=reader)
-
             await perform_extension_handshake(writer=writer, reader=reader)
-
-            print("Sending request metadata message...")
             await send_request_metadata_message(writer=writer)
+            info_dict = await read_data_message(writer=writer, reader=reader)
 
             writer.close()
             await writer.wait_closed()
+
+            print("--------------------------------------------------")
+            torrent.length = info_dict[b"length"]
+            torrent.piece_length = info_dict[b"piece length"]
+            pieces_data = info_dict[b"pieces"]
+            pieces = []
+            for i in range(0, len(pieces_data), 20):
+                pieces.append(pieces_data[i : i + 20].hex())
+            torrent.pieces = pieces
+            torrent.print_info()
 
         case _:
             raise NotImplementedError(f"Unknown command {command}")

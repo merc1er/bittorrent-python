@@ -9,11 +9,14 @@ import asyncio
 import math
 import socket
 import struct
+from typing import Any
 
 import bencodepy
 
 from app.models import Message, Peer, Torrent
 from app.settings import PEER_ID
+
+bc = bencodepy.BencodeDecoder(encoding="utf-8")
 
 
 # Entrypoint
@@ -164,7 +167,7 @@ async def perform_handshake_standalone(
 
 async def perform_extension_handshake(
     writer: asyncio.StreamWriter, reader: asyncio.StreamReader
-) -> None:
+) -> int:
     payload = {"m": {"ut_metadata": 69}}
     encoded_payload = bencodepy.encode(payload)
     extension_id = b"\x00"
@@ -174,11 +177,10 @@ async def perform_extension_handshake(
     await writer.drain()
 
     response = await read_message(20, writer, reader)
-    print("Received extension handshake response:", response)
 
     decoded_response = bencodepy.decode(response[6:])
     metadata_extension_id = decoded_response[b"m"][b"ut_metadata"]
-    print("Peer Metadata Extension ID:", metadata_extension_id)
+    return metadata_extension_id
 
 
 async def send_request_metadata_message(writer: asyncio.StreamWriter) -> None:
@@ -217,9 +219,20 @@ async def read_message(
 
     message_id = message[0]
     if message_id == expected_message_id:
-        print(f"Received message with ID {expected_message_id}.")
         return length_bytes + message
     else:
         raise ValueError(
             f"Expected message with ID {expected_message_id}, but got {message_id}."
         )
+
+
+async def read_data_message(
+    writer: asyncio.StreamWriter, reader: asyncio.StreamReader
+) -> dict[bytes, Any]:
+    message = await read_message(20, writer, reader)
+    message_data = message[6:]
+
+    dictionary_last_index = message_data.find(b"ee")
+    decoded_info_dict = bencodepy.decode(message_data[dictionary_last_index + 2 :])
+
+    return decoded_info_dict
