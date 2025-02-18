@@ -1,6 +1,7 @@
 import struct
 from dataclasses import dataclass
 from hashlib import sha1
+from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 import bencodepy  # type: ignore
@@ -125,3 +126,12 @@ class Torrent:
         decoded_response = bencodepy.decode(response.content)
         self.peers = Peer.from_bytes(decoded_response[b"peers"])
         return self.peers
+
+    def populate_info_from_dict(self, info_dict: dict[bytes, Any]) -> None:
+        self.length = info_dict[b"length"]
+        self.piece_length = info_dict[b"piece length"]
+        pieces_data = info_dict[b"pieces"]
+        pieces = []
+        for i in range(0, len(pieces_data), 20):
+            pieces.append(pieces_data[i : i + 20].hex())
+        self.pieces = pieces

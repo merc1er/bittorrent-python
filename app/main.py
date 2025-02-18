@@ -138,14 +138,39 @@ async def main():
             await writer.wait_closed()
 
             print("--------------------------------------------------")
-            torrent.length = info_dict[b"length"]
-            torrent.piece_length = info_dict[b"piece length"]
-            pieces_data = info_dict[b"pieces"]
-            pieces = []
-            for i in range(0, len(pieces_data), 20):
-                pieces.append(pieces_data[i : i + 20].hex())
-            torrent.pieces = pieces
+            torrent.populate_info_from_dict(info_dict)
             torrent.print_info()
+
+        case "magnet_download_piece":
+            output_file_path = sys.argv[3]
+            magnet_link = sys.argv[4]
+
+            torrent = Torrent.from_magnet_link(magnet_link)
+            torrent.get_peers()
+            peer = torrent.peers[0]
+
+            reader, writer = await asyncio.open_connection(peer.ip, int(peer.port))
+            await perform_handshake(
+                info_hash=bytes.fromhex(torrent.info_hash),
+                writer=writer,
+                reader=reader,
+                signal_extensions=True,
+            )
+
+            await read_message(5, writer=writer, reader=reader)
+            await perform_extension_handshake(writer=writer, reader=reader)
+            await send_request_metadata_message(writer=writer)
+            info_dict = await read_data_message(writer=writer, reader=reader)
+
+            writer.close()
+            await writer.wait_closed()
+
+            torrent.populate_info_from_dict(info_dict)
+            print(f"Total number of pieces: {len(torrent.pieces)}")
+            piece_index = int(sys.argv[5])
+            await download_piece(torrent, piece_index, output_file_path)
+
+            os.rename(f"{output_file_path}.part{piece_index}", output_file_path)
 
         case _:
             raise NotImplementedError(f"Unknown command {command}")
