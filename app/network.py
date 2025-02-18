@@ -181,6 +181,13 @@ async def perform_extension_handshake(
     print("Peer Metadata Extension ID:", metadata_extension_id)
 
 
+async def send_request_metadata_message(writer: asyncio.StreamWriter) -> None:
+    payload_dict = {"msg_type": 0, "piece": 0}
+    message = Message(id=20, payload=b"\x01" + bencodepy.encode(payload_dict))
+    writer.write(message.to_bytes())
+    await writer.drain()
+
+
 async def receive_full_message(
     length: int, writer: asyncio.StreamWriter, reader: asyncio.StreamReader
 ) -> bytes:

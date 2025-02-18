@@ -13,6 +13,7 @@ from app.network import (
     perform_handshake,
     perform_handshake_standalone,
     read_message,
+    send_request_metadata_message,
 )
 
 bc = bencodepy.BencodeDecoder(encoding="utf-8")
@@ -109,6 +110,30 @@ async def main():
             await read_message(5, writer=writer, reader=reader)
 
             await perform_extension_handshake(writer=writer, reader=reader)
+
+            writer.close()
+            await writer.wait_closed()
+
+        case "magnet_info":
+            magnet_link = sys.argv[2]
+            torrent = Torrent.from_magnet_link(magnet_link)
+            torrent.get_peers()
+            peer = torrent.peers[0]
+
+            reader, writer = await asyncio.open_connection(peer.ip, int(peer.port))
+            await perform_handshake(
+                info_hash=bytes.fromhex(torrent.info_hash),
+                writer=writer,
+                reader=reader,
+                signal_extensions=True,
+            )
+
+            await read_message(5, writer=writer, reader=reader)
+
+            await perform_extension_handshake(writer=writer, reader=reader)
+
+            print("Sending request metadata message...")
+            await send_request_metadata_message(writer=writer)
 
             writer.close()
             await writer.wait_closed()
