@@ -172,6 +172,62 @@ async def main():
 
             os.rename(f"{output_file_path}.part{piece_index}", output_file_path)
 
+        case "magnet_download":
+            output_file_path = sys.argv[3]
+            magnet_link = sys.argv[4]
+
+            torrent = Torrent.from_magnet_link(magnet_link)
+            torrent.get_peers()
+            peer = torrent.peers[0]
+
+            reader, writer = await asyncio.open_connection(peer.ip, int(peer.port))
+            await perform_handshake(
+                info_hash=bytes.fromhex(torrent.info_hash),
+                writer=writer,
+                reader=reader,
+                signal_extensions=True,
+            )
+
+            await read_message(5, writer=writer, reader=reader)
+            await perform_extension_handshake(writer=writer, reader=reader)
+            await send_request_metadata_message(writer=writer)
+            info_dict = await read_data_message(writer=writer, reader=reader)
+
+            writer.close()
+            await writer.wait_closed()
+
+            torrent.populate_info_from_dict(info_dict)
+            print(f"Total number of pieces: {len(torrent.pieces)}")
+            print(f"Found {len(torrent.peers)} peers.")
+
+            peers_cycle = itertools.cycle(torrent.peers)
+            tasks = []
+
+            for piece_index in range(len(torrent.pieces)):
+                peer = next(peers_cycle)
+                tasks.append(
+                    asyncio.create_task(
+                        download_piece(torrent, piece_index, output_file_path, peer)
+                    )
+                )
+
+                # Limit the number of concurrent tasks based on the number of peers.
+                if len(tasks) >= len(torrent.peers):
+                    done, pending = await asyncio.wait(
+                        tasks, return_when=asyncio.FIRST_COMPLETED
+                    )
+                    tasks = list(pending)  # Reassign pending tasks to tasks.
+
+            # Wait for any remaining tasks to complete.
+            await asyncio.gather(*tasks)
+
+            with open(output_file_path, "wb") as final_file:
+                for piece_index in range(len(torrent.pieces)):
+                    piece_file_name = f"{output_file_path}.part{piece_index}"
+                    with open(piece_file_name, "rb") as piece_file:
+                        final_file.write(piece_file.read())
+                    os.remove(piece_file_name)
+
         case _:
             raise NotImplementedError(f"Unknown command {command}")
 
